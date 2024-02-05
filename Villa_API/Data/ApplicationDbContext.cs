@@ -5,6 +5,10 @@ namespace Villa_API.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> option): base(option)
+        {
+
+        }
         public DbSet<Villa> Villas { get; set; }
     }
 }
