@@ -1,4 +1,6 @@
-﻿using System.Linq.Expressions;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Linq.Expressions;
 using Villa_API.Data;
 using Villa_API.Models;
 using Villa_API.Repository.IRepository;
@@ -8,36 +10,53 @@ namespace Villa_API.Repository
     public class VillaRepository : IVillaRepository
     {
         private readonly ApplicationDbContext _db;
-        public async Task Create(Villa entity)
+        public VillaRepository(ApplicationDbContext db) {  _db = db; }
+        public async Task CreateAsync(Villa entity)
         {
             await _db.Villas.AddAsync(entity);
-            await Save();
+            await SaveAsync();
         }
 
-        public Task<Villa> Get(Expression<Func<Villa>> filter, bool tracked = true)
+        public async Task<Villa> GetAsync(Expression<Func<Villa, bool>> filter, bool tracked = true)
         {
-            throw new NotImplementedException();
+            IQueryable<Villa> query = _db.Villas;
+            if(tracked != true)
+            {
+                query = query.AsNoTracking();
+            }
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            return await query.FirstOrDefaultAsync();
         }
 
-        public Task<List<Villa>> GetAll(Expression<Func<Villa>> filter = null)
+        public async Task<List<Villa>> GetAllAsync(Expression<Func<Villa, bool>> filter = null)
         {
-            
+            IQueryable<Villa> query = _db.Villas;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+            return await query.ToListAsync();
         }
 
-        public async Task Remove(Villa entity)
+        public async Task RemoveAsync(Villa entity)
         {
             _db.Villas.Remove(entity);
-            await Save();
+            await SaveAsync();
         }
 
-        public async Task Save()
+        public async Task SaveAsync()
         {
             await _db.SaveChangesAsync();
         }
 
-        public Task Update(Villa entity)
+        public async Task UpdateAsync(Villa entity)
         {
-            throw new NotImplementedException();
+            _db.Villas.Update(entity);
+            await SaveAsync();
         }
     }
 }
