@@ -17,7 +17,7 @@ namespace Villa_API.Repository
             await SaveAsync();
         }
 
-        public async Task<Villa> GetAsync(Expression<Func<Villa, bool>> filter, bool tracked = true)
+        public async Task<Villa> GetAsync(Expression<Func<Villa, bool>>? filter = null, bool tracked = true)
         {
             IQueryable<Villa> query = _db.Villas;
             if(tracked != true)
@@ -31,7 +31,7 @@ namespace Villa_API.Repository
             return await query.FirstOrDefaultAsync();
         }
 
-        public async Task<List<Villa>> GetAllAsync(Expression<Func<Villa, bool>> filter = null)
+        public async Task<List<Villa>> GetAllAsync(Expression<Func<Villa, bool>>? filter = null)
         {
             IQueryable<Villa> query = _db.Villas;
 
