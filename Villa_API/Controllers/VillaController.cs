@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Internal;
 using Villa_API.Data;
 using Villa_API.Models;
 using Villa_API.Models.DTO;
+using Villa_API.Repository.IRepository;
 
 namespace Villa_API.Controllers
 {
@@ -14,11 +15,11 @@ namespace Villa_API.Controllers
     [ApiController]
     public class VillaController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IVillaRepository _villaRepository;
         private readonly IMapper _mapper;
-        public VillaController(ApplicationDbContext db, IMapper mapper)
+        public VillaController(IVillaRepository villaRepository, IMapper mapper)
         {
-            _db = db;
+            _villaRepository = villaRepository;
             _mapper = mapper;
         }
 
@@ -27,7 +28,7 @@ namespace Villa_API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<VillaDTO>>> GetVillas()
         {
-            IEnumerable<Villa> villaList = await _db.Villas.ToListAsync();
+            IEnumerable<Villa> villaList = await _villaRepository.GetAllAsync();
             return Ok(_mapper.Map<List<VillaDTO>>(villaList));
         }
         #endregion
@@ -44,7 +45,7 @@ namespace Villa_API.Controllers
                 return BadRequest();
             }
 
-            var villa = await _db.Villas.FirstOrDefaultAsync(u => u.Id == id);
+            var villa = await _villaRepository.GetAsync(u => u.Id == id);
             if (villa == null)
             {
                 return NotFound();
@@ -53,13 +54,14 @@ namespace Villa_API.Controllers
         }
         #endregion
 
+        #region CreateVilla
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<VillaDTO>> CreateVilla([FromBody] VillaCreateDTO createDTO)
         {
-            if (await _db.Villas.FirstOrDefaultAsync(u => u.Name.ToLower() == createDTO.Name.ToLower()) != null)
+            if (await _villaRepository.GetAsync(u => u.Name.ToLower() == createDTO.Name.ToLower()) != null)
             {
                 ModelState.AddModelError("CustomError", "Name should be unique!");
                 return BadRequest(ModelState);
@@ -71,12 +73,13 @@ namespace Villa_API.Controllers
 
             Villa model = _mapper.Map<Villa>(createDTO);
 
-            await _db.Villas.AddAsync(model);
-            await _db.SaveChangesAsync();
+            await _villaRepository.CreateAsync(model);
 
             return CreatedAtRoute("GetVilla", new { id = model.Id }, model);
         }
+        #endregion
 
+        #region DeleteVilla
         [HttpDelete("{id:int}", Name = "DeleteVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -88,16 +91,18 @@ namespace Villa_API.Controllers
                 return BadRequest();
             }
 
-            var villa = await _db.Villas.FirstOrDefaultAsync(u => u.Id == id);
+            var villa = await _villaRepository.GetAsync(u => u.Id == id);
             if (villa == null)
             {
                 return NotFound();
             }
-            _db.Villas.Remove(villa);
-            await _db.SaveChangesAsync();
+            await _villaRepository.RemoveAsync(villa);
+
             return NoContent();
         }
+        #endregion
 
+        #region UpdateVilla
         [HttpPut("{id:int}", Name = "UpdateVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -110,12 +115,12 @@ namespace Villa_API.Controllers
 
             Villa model = _mapper.Map<Villa>(updateDTO);
 
-            _db.Villas.Update(model);
-            await _db.SaveChangesAsync();
-
+            await _villaRepository.UpdateAsync(model);
             return NoContent();
         }
+        #endregion
 
+        #region UpdatePartialVilla
         [HttpPatch("{id:int}",Name = "UpdatePartialVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -126,7 +131,7 @@ namespace Villa_API.Controllers
                 return BadRequest();
             }
 
-            var villa = await _db.Villas.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            var villa = await _villaRepository.GetAsync(u=>u.Id == id, tracked:false);
             VillaUpdateDTO villaUpdateDTO = _mapper.Map<VillaUpdateDTO>(villa);
 
             if (villa == null)
@@ -138,8 +143,7 @@ namespace Villa_API.Controllers
 
             Villa model = _mapper.Map<Villa>(villaUpdateDTO);
 
-            _db.Villas.Update(model);
-            await _db.SaveChangesAsync();
+            await _villaRepository.UpdateAsync(model);
             if (!ModelState.IsValid)
             {
                 return BadRequest();
@@ -147,5 +151,6 @@ namespace Villa_API.Controllers
 
             return NoContent();
         }
+        #endregion
     }
 }
